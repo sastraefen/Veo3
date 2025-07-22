@@ -1,1 +1,260 @@
 
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VEO 3 Prompt Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #121212;
+            color: #E0E0E0;
+        }
+        .gradient-text {
+            background: linear-gradient(90deg, #A076F9, #D276F9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+        }
+        .gradient-button {
+            background: linear-gradient(90deg, #A076F9, #D276F9);
+            transition: all 0.3s ease;
+        }
+        .gradient-button:hover {
+            box-shadow: 0 0 15px rgba(180, 118, 249, 0.5);
+            transform: translateY(-2px);
+        }
+        .gradient-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .accordion-button svg.arrow {
+            transition: transform 0.3s ease;
+        }
+        .accordion-button.active svg.arrow {
+            transform: rotate(180deg);
+        }
+        .form-input, .form-select {
+            background-color: #2a2a2a;
+            border: 1px solid #444;
+            color: #f0f0f0;
+        }
+        .form-input:focus, .form-select:focus {
+            border-color: #A076F9;
+            --tw-ring-color: #A076F9;
+        }
+        .form-select option {
+            background-color: #2a2a2a;
+            color: #f0f0f0;
+        }
+        .loader {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #A076F9;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto max-w-3xl p-4 sm:p-6 lg:p-8">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-extrabold">
+                <span class="gradient-text">VEO 3</span> PROMPT GENERATOR
+            </h1>
+            <p class="text-lg text-gray-400 mt-2">Buat prompt video Anda lebih detail dan kaya.</p>
+        </header>
+
+        <!-- Tombol Aksi Utama -->
+        <div class="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+             <button id="gemini-surprise-btn" class="gradient-button text-white font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-2 text-lg">
+                <span id="gemini-surprise-text">✨ Buat Kejutan</span>
+                <div id="gemini-surprise-loader" class="loader hidden"></div>
+            </button>
+            <button id="reset-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-5 rounded-lg transition-colors text-lg">Generate Ulang</button>
+        </div>
+
+        <!-- Hasil Prompt Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Prompt Indonesia -->
+            <div class="bg-[#1a1a1a] p-6 rounded-2xl border border-gray-800 shadow-lg">
+                <h2 class="text-2xl font-bold mb-4">Prompt Indonesia</h2>
+                <textarea id="output-id" rows="5" class="form-input w-full p-3 rounded-lg text-base" readonly placeholder="Hasil prompt dalam Bahasa Indonesia..."></textarea>
+                <div class="mt-4">
+                    <button data-target="output-id" class="copy-btn bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-5 rounded-lg w-full transition-colors">Salin</button>
+                </div>
+                <div data-feedback-for="output-id" class="copy-feedback text-center text-green-400 mt-3 h-5 text-sm"></div>
+            </div>
+            <!-- Prompt English -->
+            <div class="bg-[#1a1a1a] p-6 rounded-2xl border border-gray-800 shadow-lg">
+                <h2 class="text-2xl font-bold mb-4">Prompt English</h2>
+                <textarea id="output-en" rows="5" class="form-input w-full p-3 rounded-lg text-base" readonly placeholder="Hasil terjemahan dalam Bahasa Inggris..."></textarea>
+                <div class="mt-4">
+                     <button data-target="output-en" class="copy-btn bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-5 rounded-lg w-full transition-colors">Salin</button>
+                </div>
+                 <div data-feedback-for="output-en" class="copy-feedback text-center text-green-400 mt-3 h-5 text-sm"></div>
+            </div>
+        </div>
+
+        <div id="accordion-container" class="space-y-3">
+            <!-- Accordion items will be generated here -->
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Data and DOM elements setup
+            const accordionData = [
+                { id: 'subject', title: 'Subjek', placeholder: 'Contoh: seekor naga emas raksasa', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>` },
+                { id: 'action', title: 'Aksi', placeholder: 'Contoh: terbang di atas pegunungan bersalju', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>` },
+                { id: 'setting', title: 'Setting', placeholder: 'Contoh: di sebuah kerajaan fantasi saat senja', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>` },
+                { id: 'style', title: 'Gaya Visual', placeholder: 'Contoh: sinematik, fotorealistis, epik', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0L12 2.69z"></path></svg>` },
+                { id: 'shot', title: 'Shot', placeholder: 'Contoh: wide shot, aerial view, drone shot', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>` },
+                { id: 'lighting', title: 'Pencahayaan', placeholder: 'Contoh: golden hour, pencahayaan dramatis', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>` },
+                { id: 'quality', title: 'Kualitas & Detail', placeholder: 'Contoh: sangat detail, 8K, Unreal Engine', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>` },
+                { id: 'negative_prompt', title: 'Prompt Negatif', placeholder: 'Contoh: buram, kualitas rendah, teks, watermark', icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>` }
+            ];
+            const dropdownOptions = { style: ['Fotorealistis', 'Sinematik', 'Gaya Anime 90-an', 'Gaya Studio Ghibli', 'Lukisan cat air', 'Seni Piksel (Pixel Art)', 'Model 3D', 'Vaporwave', 'Film Noir', 'Dokumenter Alam', 'Stop Motion', 'Gaya Wes Anderson', 'Cyberpunk', 'Fantasi Epik'], shot: ['Wide Shot', 'Long Shot', 'Medium Shot', 'Close-up', 'Extreme Close-up', 'Aerial View', 'Drone Shot', 'Tracking Shot', 'Dolly Zoom', 'Point of View (POV)', 'Dutch Angle', 'Handheld'], lighting: ['Golden Hour', 'Blue Hour', 'Pencahayaan Neon', 'Rembrandt Lighting', 'Cahaya Terang Siang Hari', 'Chiaroscuro (Dramatis)', 'Cahaya Bulan Purnama', 'Siluet', 'Pencahayaan Studio', 'Cahaya Lilin', 'Cahaya Bawah Air'], quality: ['Sangat Detail (Hyperdetailed)', 'Resolusi 4K', 'Resolusi 8K', 'Render Unreal Engine', 'Render Octane', 'Fokus Tajam (Sharp Focus)', 'Bokeh', 'Grain Film', 'Lensa Anamorphic', 'Gradasi Warna Profesional', 'Tekstur Realistis'], negative_prompt: ['kualitas buruk', 'buram', 'deformasi', 'teks', 'watermark', 'tangan jelek', 'gambar kartun', 'render jelek'] };
+            const accordionContainer = document.getElementById('accordion-container');
+            const outputIdTextarea = document.getElementById('output-id');
+            const outputEnTextarea = document.getElementById('output-en');
+            const resetBtn = document.getElementById('reset-btn');
+            const geminiSurpriseBtn = document.getElementById('gemini-surprise-btn');
+            const geminiSurpriseText = document.getElementById('gemini-surprise-text');
+            const geminiSurpriseLoader = document.getElementById('gemini-surprise-loader');
+            const allInputs = [];
+            let translationTimeout;
+
+            // Function to generate the final prompt text
+            function updatePrompt() {
+                const positiveParts = allInputs.filter(input => input.dataset.type === 'positive' && input.value.trim()).map(input => input.value.trim());
+                const negativeInput = allInputs.find(input => input.dataset.type === 'negative');
+                let negativePart = negativeInput ? negativeInput.value.trim() : '';
+                
+                let promptInId = positiveParts.join(', ');
+                let promptInEn = promptInId; // Placeholder, will be translated
+
+                if (negativePart) {
+                    promptInId += ` --no ${negativePart}`;
+                    promptInEn += ` --no ${negativePart}`; // Assume negative prompt doesn't need translation or handle it
+                }
+                
+                outputIdTextarea.value = promptInId;
+
+                // Debounce translation call
+                clearTimeout(translationTimeout);
+                if (promptInId.trim()) {
+                    translationTimeout = setTimeout(() => translateAndDisplay(promptInId), 500);
+                } else {
+                    outputEnTextarea.value = '';
+                }
+            }
+            
+            // Translate and display
+            async function translateAndDisplay(textToTranslate) {
+                outputEnTextarea.value = 'Menerjemahkan...';
+                const promptToGemini = `Translate the following Indonesian video prompt to English. Keep the structure, including any "--no" parts, intact. Text: "${textToTranslate}"`;
+                 try {
+                    const apiKey = ""; 
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: promptToGemini }] }] })
+                    });
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const result = await response.json();
+                    if (result.candidates && result.candidates[0].content.parts[0].text) {
+                        outputEnTextarea.value = result.candidates[0].content.parts[0].text;
+                    } else {
+                        outputEnTextarea.value = 'Gagal menerjemahkan.';
+                    }
+                } catch (error) {
+                    console.error("Translation error:", error);
+                    outputEnTextarea.value = 'Error saat menerjemahkan.';
+                }
+            }
+
+            // Dynamically create accordion items
+            accordionData.forEach((item) => {
+                const accordionItem = document.createElement('div');
+                accordionItem.className = 'bg-[#1a1a1a] border border-gray-800 rounded-2xl';
+                let dropdownHTML = dropdownOptions[item.id] ? `<select class="form-select dropdown-menu w-full p-3 rounded-lg mt-3" data-target="${item.id}"><option value="">-- Pilih Opsi Cepat --</option>${dropdownOptions[item.id].map(opt => `<option value="${opt}">${opt}</option>`).join('')}</select>` : '';
+                accordionItem.innerHTML = `<button class="accordion-button w-full flex justify-between items-center p-5 text-left text-xl font-semibold"><span class="flex items-center gap-4">${item.icon} ${item.title}</span><svg class="arrow w-6 h-6" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button><div class="accordion-content px-5"><div class="pb-5"><input type="text" id="${item.id}" data-type="${item.id === 'negative_prompt' ? 'negative' : 'positive'}" class="form-input w-full p-3 rounded-lg" placeholder="${item.placeholder}">${dropdownHTML}</div></div>`;
+                accordionContainer.appendChild(accordionItem);
+                allInputs.push(document.getElementById(item.id));
+            });
+            
+            // Add all event listeners
+            allInputs.forEach(input => input.addEventListener('input', updatePrompt));
+            document.querySelectorAll('.accordion-button').forEach(button => button.addEventListener('click', (e) => { const content = e.currentTarget.nextElementSibling; e.currentTarget.classList.toggle('active'); content.style.maxHeight = content.style.maxHeight ? null : content.scrollHeight + "px"; }));
+            if (document.querySelectorAll('.accordion-button').length > 0) document.querySelectorAll('.accordion-button')[0].click();
+            document.querySelectorAll('.dropdown-menu').forEach(dropdown => dropdown.addEventListener('change', function() { const selectedValue = this.value; if (!selectedValue) return; const targetInput = document.getElementById(this.dataset.target); targetInput.value = targetInput.value.trim() ? `${targetInput.value.trim()}, ${selectedValue}` : selectedValue; updatePrompt(); this.selectedIndex = 0; }));
+            
+            document.querySelectorAll('.copy-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const targetId = this.dataset.target;
+                    const textarea = document.getElementById(targetId);
+                    if (!textarea.value) return;
+                    navigator.clipboard.writeText(textarea.value).then(() => {
+                        const feedbackEl = document.querySelector(`[data-feedback-for="${targetId}"]`);
+                        const originalText = this.textContent;
+                        feedbackEl.textContent = 'Prompt berhasil disalin!';
+                        this.textContent = 'Disalin!';
+                        setTimeout(() => {
+                            feedbackEl.textContent = '';
+                            this.textContent = originalText;
+                        }, 2000);
+                    });
+                });
+            });
+
+            resetBtn.addEventListener('click', () => { 
+                allInputs.forEach(input => input.value = ''); 
+                updatePrompt(); 
+            });
+            
+            // Gemini Surprise Feature Logic
+            geminiSurpriseBtn.addEventListener('click', async () => {
+                geminiSurpriseBtn.disabled = true; geminiSurpriseText.textContent = 'Mencari Ide...'; geminiSurpriseLoader.classList.remove('hidden');
+                const promptToGemini = `You are a creative assistant for a text-to-video AI. Generate a complete, highly creative, visually stunning, and unexpected video prompt idea. Provide the output as a single JSON object with these exact keys: "subject", "action", "setting", "style", "shot", "lighting", "quality". All values must be in Indonesian.`;
+                const payload = { contents: [{ role: "user", parts: [{ text: promptToGemini }] }], generationConfig: { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { subject: { type: "STRING" }, action: { type: "STRING" }, setting: { type: "STRING" }, style: { type: "STRING" }, shot: { type: "STRING" }, lighting: { type: "STRING" }, quality: { type: "STRING" } } } } };
+                try {
+                    const apiKey = ""; const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const result = await response.json();
+                    if (result.candidates && result.candidates.length > 0) {
+                        const idea = JSON.parse(result.candidates[0].content.parts[0].text);
+                        for (const key in idea) { const input = document.getElementById(key); if (input) input.value = idea[key]; }
+                        updatePrompt();
+                    } else { throw new Error("No content received from API."); }
+                } catch (error) { console.error("Error calling Gemini API:", error); alert("Gagal mendapatkan ide kejutan. Silakan coba lagi.");
+                } finally { geminiSurpriseBtn.disabled = false; geminiSurpriseText.textContent = '✨ Buat Kejutan'; geminiSurpriseLoader.classList.add('hidden'); }
+            });
+        });
+    </script>
+
+</body>
+</html>
